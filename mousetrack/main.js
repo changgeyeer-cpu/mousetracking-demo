@@ -155,6 +155,39 @@ function makeStartTrial(trialIndex) {
     };
 }
 
+function makeBetweenTrial(nextTrialIndex) {
+    return {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `
+      <div id="content">
+        <div class="center-box" style="margin-top: 120px;">
+          <div style="font-size:18px; font-weight:700;">
+            Trial ${nextTrialIndex + 1} / ${TRIALS.length}
+          </div>
+          <div style="margin-top:10px; color:#666;">
+            Click Start when you are ready.
+          </div>
+        </div>
+      </div>
+    `,
+        choices: ["Start"],
+
+        // 关键：不启用 timer（不要 trial_duration）
+        on_load: () => {
+            // 保险：把上一页 choice 的计时器清掉，并把显示重置成 --
+            if (window.__timerInterval) clearInterval(window.__timerInterval);
+            const timerEl = document.getElementById("timer");
+            if (timerEl) timerEl.textContent = "Time: --";
+        },
+
+        on_finish: (data) => {
+            data.phase = "between";
+            data.next_trial = nextTrialIndex + 1;
+        },
+    };
+}
+
+
 // ========== 生成：每个 trial 的 选择页（hover 翻转 + Choose） ==========
 function makeChoiceTrial(trialIndex, t) {
     return {
@@ -349,7 +382,13 @@ timeline.push({
 TRIALS.forEach((t, i) => {
     timeline.push(makeStartTrial(i));
     timeline.push(makeChoiceTrial(i, t));
+
+    // 在两个 choice trial 之间插入“中间 Start 页”
+    if (i < TRIALS.length - 1) {
+        timeline.push(makeBetweenTrial(i + 1));
+    }
 });
+
 
 // End（不显示数据）
 timeline.push({
